@@ -1,22 +1,23 @@
-import { Fragment, useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import PropTypes from 'prop-types';
-import * as Yup from 'yup';
-import { toast } from 'react-hot-toast';
-import { Formik, Form } from 'formik';
-import { Dialog, Transition } from '@headlessui/react';
-import { SparklesIcon, MailOpenIcon, XIcon } from '@heroicons/react/outline';
-import Input from './Input';
+import { Fragment, useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import PropTypes from "prop-types";
+import * as Yup from "yup";
+import { toast } from "react-hot-toast";
+import { Formik, Form } from "formik";
+import { Dialog, Transition } from "@headlessui/react";
+import { SparklesIcon, MailOpenIcon, XIcon } from "@heroicons/react/outline";
+import { signIn } from "next-auth/react";
+import Input from "./Input";
 
 const SignInSchema = Yup.object().shape({
   email: Yup.string()
     .trim()
-    .email('Invalid email')
-    .required('This field is required'),
+    .email("Invalid email")
+    .required("This field is required"),
 });
 
-const Confirm = ({ show = false, email = '' }) => (
+const Confirm = ({ show = false, email = "" }) => (
   <Transition appear show={show} as={Fragment}>
     <div className="fixed inset-0 z-50">
       <Transition.Child
@@ -50,7 +51,7 @@ const Confirm = ({ show = false, email = '' }) => (
             </h3>
 
             <p className="text-lg text-center mt-4">
-              We emailed a magic link to <strong>{email ?? ''}</strong>.
+              We emailed a magic link to <strong>{email ?? ""}</strong>.
               <br />
               Check your inbox and click the link in the email to login or sign
               up.
@@ -69,14 +70,43 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
 
   const signInWithEmail = async ({ email }) => {
     // TODO: Perform email auth
+    let toastId;
+
+    try {
+      toastId = toast.loading("Loading...");
+      setDisabled(true);
+      // Perform Signin
+
+      const { error } = await signIn("email", {
+        redirect: false,
+        callbackUrl: window.location.href,
+        email,
+      });
+      if (!error) {
+        setConfirm(true);
+      } else {
+        throw new Error("Email auth not implemented");
+      }
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error(err.message);
+      toast.error("Unable to sign in", { id: toastId });
+    } finally {
+      setDisabled(false);
+    }
   };
 
-  const signInWithGoogle = () => {
-    // TODO: Perform Google auth
+  const signInWithGoogle = async () => {
+    toast.loading("Redirecting...");
+    setDisabled(true);
+    // Perform sign in
+    await signIn("google", {
+      callbackUrl: window.location.href,
+    });
   };
 
   const closeModal = () => {
-    if (typeof onClose === 'function') {
+    if (typeof onClose === "function") {
       onClose();
     }
   };
@@ -163,7 +193,7 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
                     as="h3"
                     className="mt-6 font-bold text-lg sm:text-2xl text-center"
                   >
-                    {showSignIn ? 'Welcome back!' : 'Create your account'}
+                    {showSignIn ? "Welcome back!" : "Create your account"}
                   </Dialog.Title>
 
                   {!showSignIn ? (
@@ -186,12 +216,12 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
                         width={32}
                         height={32}
                       />
-                      <span>Sign {showSignIn ? 'in' : 'up'} with Google</span>
+                      <span>Sign {showSignIn ? "in" : "up"} with Google</span>
                     </button>
 
                     {/* Sign with email */}
                     <Formik
-                      initialValues={{ email: '' }}
+                      initialValues={{ email: "" }}
                       validationSchema={SignInSchema}
                       validateOnBlur={false}
                       onSubmit={signInWithEmail}
@@ -212,14 +242,14 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
                             className="mt-6 w-full bg-rose-600 text-white py-2 px-8 rounded-md focus:outline-none focus:ring-4 focus:ring-rose-600 focus:ring-opacity-50 hover:bg-rose-500 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600"
                           >
                             {isSubmitting
-                              ? 'Loading...'
-                              : `Sign ${showSignIn ? 'in' : 'up'}`}
+                              ? "Loading..."
+                              : `Sign ${showSignIn ? "in" : "up"}`}
                           </button>
 
                           <p className="mt-2 text-center text-sm text-gray-500">
                             {showSignIn ? (
                               <>
-                                Don&apos;t have an account yet?{' '}
+                                Don&apos;t have an account yet?{" "}
                                 <button
                                   type="button"
                                   disabled={disabled}
@@ -235,7 +265,7 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
                               </>
                             ) : (
                               <>
-                                Already have an account?{' '}
+                                Already have an account?{" "}
                                 <button
                                   type="button"
                                   disabled={disabled}
@@ -254,7 +284,7 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
 
                           <Confirm
                             show={showConfirm}
-                            email={values?.email ?? ''}
+                            email={values?.email ?? ""}
                           />
                         </Form>
                       )}
